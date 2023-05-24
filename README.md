@@ -9,8 +9,8 @@ The `main.go` file contains an example usage of the DataFrame module. It demonst
 To run the example code, follow these steps:
 
 1. Ensure you have Go installed on your system.
-2. Install the required dependencies by running `go get -u github.com/your-username/your-module/dataframe`.
-3. Replace `"github.com/your-username/your-module/dataframe"` with the correct import path to your dataframe module in the `main.go` file.
+2. Install the required dependencies by running `go get -u github.com/nitetrik/Godataframe/dataframe`.
+3. Replace `"github.com/nitetrik/Godataframe/dataframe"` with the correct import path to your dataframe module in the `main.go` file.
 4. Run the command `go run main.go` in the terminal.
 
 The output will show the results of the dataframe operations performed in the example code.
