@@ -1,86 +1,105 @@
-Original DataFrame:
+## Original DataFrame:
+| Name | Age | City     |
+|------|-----|----------|
+| John | 30  | New York |
+| Jane | 25  | London   |
+| Mike | 35  | Paris    |
 
-| Name  | Age | City     |
-|-------|-----|----------|
-| John  | 25  | New York |
-| Alice | 30  | London   |
-| Bob   | 28  | Paris    |
-| Emily | 22  | Tokyo    |
+## Ages:
+[30 25 35]
 
-DataFrame after column manipulation:
+## Sum of ages:
+90
 
-| Name  | Location | Gender |
-|-------|----------|--------|
-| John  | New York | Male   |
-| Alice | London   | Female |
-| Bob   | Paris    | Male   |
-| Emily | Tokyo    | Female |
+## Filtered DataFrame:
+| Name | Age | City     |
+|------|-----|----------|
+| John | 30  | New York |
+| Mike | 35  | Paris    |
 
-DataFrame after sorting:
+## Renamed DataFrame:
+| Name | Age | Location |
+|------|-----|----------|
+| John | 30  | New York |
+| Jane | 25  | London   |
+| Mike | 35  | Paris    |
 
-| Name  | Location | Gender |
-|-------|----------|--------|
-| Alice | London   | Female |
-| Bob   | Paris    | Male   |
-| Emily | Tokyo    | Female |
-| John  | New York | Male   |
+## DataFrame with new column:
+| Name | Age | Location | Population (in millions) |
+|------|-----|----------|-------------------------|
+| John | 30  | New York | 8.5                     |
+| Jane | 25  | London   | 9                       |
+| Mike | 35  | Paris    | 10.2                    |
 
-Filtered DataFrame:
+## DataFrame with column removed:
+| Age | Location | Population (in millions) |
+|-----|----------|-------------------------|
+| 30  | New York | 8.5                     |
+| 25  | London   | 9                       |
+| 35  | Paris    | 10.2                    |
 
-| Name  | Location | Gender |
-|-------|----------|--------|
-| Alice | London   | Female |
+## DataFrame with reordered columns:
+| Location | Population (in millions) | Age |
+|----------|-------------------------|-----|
+| New York | 8.5                     | 30  |
+| London   | 9                       | 25  |
+| Paris    | 10.2                    | 35  |
 
-Descriptive Statistics:
-Min: 22
-Max: 30
-Median: 28
-Variance: 7
+## DataFrame sorted by Age:
+| Location | Population (in millions) | Age |
+|----------|-------------------------|-----|
+| London   | 9                       | 25  |
+| New York | 8.5                     | 30  |
+| Paris    | 10.2                    | 35  |
 
-Merged DataFrame:
+## Minimum age:
+25
 
-| Name  | Location | Gender | Salary |
-|-------|----------|--------|--------|
-| John  | New York | Male   | 5000   |
-| Alice | London   | Female | 6000   |
-| Bob   | Paris    | Male   | 5500   |
+## Maximum age:
+35
 
-DataFrame after column data type conversion:
+## Median age:
+30
 
-| Name  | Location | Gender | Salary |
-|-------|----------|--------|--------|
-| Alice | London   | Female | 6000   |
-| Bob   | Paris    | Male   | 5500   |
-| John  | New York | Male   | 5000   |
+## Variance of age:
+16.333333333333332
 
-DataFrame after inferring column data types:
+## Merged DataFrame:
+| Location | Population (in millions) | Age | Name |
+|----------|-------------------------|-----|------|
+| New York | 8.5                     | 30  | John |
+| London   | 9                       | 25  | Jane |
+| Paris    | 10.2                    | 35  | Mike |
 
-| Name  | Location | Gender | Salary |
-|-------|----------|--------|--------|
-| Alice | London   | Female | 6000   |
-| Bob   | Paris    | Male   | 5500   |
-| John  | New York | Male   | 5000   |
+## DataFrame with converted column type:
+| Location | Population (in millions) | Age |
+|----------|-------------------------|-----|
+| New York | 8.5                     | 30  |
+| London   | 9                       | 25  |
+| Paris    | 10.2                    | 35  |
 
-DataFrame after filling missing values:
+## Inferred data types:
+Location: string
+Population (in millions): float64
+Age: float64
 
-| Name  | Location | Gender | Salary |
-|-------|----------|--------|--------|
-| Alice | London   | Female | 6000   |
-| Bob   | Paris    | Male   | 5500   |
-| John  | New York | Male   | 5000   |
+## DataFrame with filled missing values:
+| Location | Population (in millions) | Age |
+|----------|-------------------------|-----|
+| New York | 8.5                     | 30  |
+| London   | 9                       | 25  |
+| Paris    | 10.2                    | 35  |
 
-Grouped DataFrame:
+## Grouped DataFrame:
+| Location | Count |
+|----------|-------|
+| New York | 1     |
+| London   | 1     |
+| Paris    | 1     |
 
-| Location | Salary |
-|----------|--------|
-| London   | 6000   |
-| Paris    | 5500   |
-| New York | 5000   |
-
-Pivoted DataFrame:
-
-|       | London | Paris | New York |
-|-------|--------|-------|----------|
-| Alice | 6000   |       |          |
-| Bob   |        | 5500  |          |
-| John  |        |       | 5000     |
+## Pivoted DataFrame:
+| Age | New York | London | Paris |
+|-----|----------|--------|-------|
+| 30  | 8.5      | 0      | 0     |
+| 25  | 0        | 9      | 0     |
+| 35  | 0        | 0      | 10.2  |

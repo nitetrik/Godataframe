@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // DataFrame represents a two-dimensional table of data.
@@ -375,7 +374,7 @@ func (df *DataFrame[T]) Merge(otherDF *DataFrame[T]) (*DataFrame[T], error) {
 			for _, col := range commonColumns {
 				index1 := df.getColumnIndex(col)
 				index2 := otherDF.getColumnIndex(col)
-				if row1[index1] != row2[index2] {
+				if !reflect.DeepEqual(row1[index1], row2[index2]) {
 					return false
 				}
 			}
@@ -412,7 +411,7 @@ func (df *DataFrame[T]) ConvertColumnType(columnName string, newType reflect.Kin
 		if err != nil {
 			return err
 		}
-		newData[i] = val
+		newData[i] = val.(T)
 	}
 
 	for i := range df.Data {
@@ -422,13 +421,17 @@ func (df *DataFrame[T]) ConvertColumnType(columnName string, newType reflect.Kin
 	return nil
 }
 
-// InferColumnTypes infers the data types of columns based on the values.
-func (df *DataFrame[T]) InferColumnTypes() {
-	for i, col := range df.Headers {
+// InferDataType infers the data types of columns based on the values.
+func (df *DataFrame[T]) InferDataType() map[string]reflect.Kind {
+	dataTypes := make(map[string]reflect.Kind)
+
+	for _, col := range df.Headers {
 		column, _ := df.GetColumn(col)
 		dataType := inferDataType(column)
-		df.ConvertColumnType(col, dataType)
+		dataTypes[col] = dataType
 	}
+
+	return dataTypes
 }
 
 // FillMissingValues fills missing values in the dataframe with the specified default value.
@@ -461,7 +464,7 @@ func (df *DataFrame[T]) GroupBy(groupByColumn string, aggregationFn func(data []
 	groupedData := make([][]T, 0)
 	for _, group := range groups {
 		aggregatedRow := make([]T, len(df.Headers))
-		for i := range df.Headers {
+		for i, col := range df.Headers {
 			if i == index {
 				aggregatedRow[i] = group[0][i]
 			} else {
@@ -520,7 +523,7 @@ func (df *DataFrame[T]) Pivot(rowColumn string, columnColumn string, valueColumn
 		for j, columnName := range columnNames {
 			for k, value := range values {
 				if df.Data[k][rowIndex] == rowName && df.Data[k][columnIndex] == columnName {
-					pivotedData[i][j] = value
+					pivotedData[i][j] = value.(T)
 					break
 				}
 			}
@@ -575,25 +578,17 @@ func convertValue(value T, newType reflect.Kind) (T, error) {
 			return nil, err
 		}
 		return reflect.ValueOf(val).Convert(reflect.TypeOf(value)).Interface(), nil
-	case reflect.Ptr:
-		val := reflect.New(reflect.TypeOf(value)).Elem()
-		err := val.Set(reflect.ValueOf(value).Elem())
-		if err != nil {
-			return nil, err
-		}
-		return val.Addr().Interface(), nil
 	default:
-		return nil, fmt.Errorf("unsupported data type: %v", newType)
+		return nil, errors.New("unsupported data type conversion")
 	}
 }
 
-// Helper function to infer the data type of a column based on its values.
+// Helper function to infer the data type of a column.
 func inferDataType(column []T) reflect.Kind {
 	dataType := reflect.String
+
 	for _, val := range column {
 		switch val.(type) {
-		case string:
-			dataType = reflect.String
 		case int, int8, int16, int32, int64:
 			dataType = reflect.Int64
 		case uint, uint8, uint16, uint32, uint64:
@@ -604,11 +599,9 @@ func inferDataType(column []T) reflect.Kind {
 			dataType = reflect.Bool
 		default:
 			dataType = reflect.String
-			break
-		}
-		if dataType == reflect.String {
-			break
+			return dataType
 		}
 	}
+
 	return dataType
 }

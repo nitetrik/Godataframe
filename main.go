@@ -3,103 +3,127 @@ package main
 import (
 	"fmt"
 	"log"
-
-	"github.com/your-username/your-module/dataframe"
+	"reflect"
 )
 
 func main() {
-	// Create a new dataframe
-	df := dataframe.NewDataFrame([]string{"Name", "Age", "City"})
+	// Create a new DataFrame
+	df := NewDataFrame([]string{"Name", "Age", "City"})
 
-	// Add rows to the dataframe
-	df.AddRow("John", 25, "New York")
-	df.AddRow("Alice", 30, "London")
-	df.AddRow("Bob", 28, "Paris")
-	df.AddRow("Emily", 22, "Tokyo")
+	// Add rows to the DataFrame
+	df.AddRow("John", 30, "New York")
+	df.AddRow("Jane", 25, "London")
+	df.AddRow("Mike", 35, "Paris")
 
-	// Print the dataframe
+	// Print the original DataFrame
 	fmt.Println("Original DataFrame:")
 	df.Print()
 	fmt.Println()
 
-	// Rename a column
-	err := df.RenameColumn("City", "Location")
+	// Get a column from the DataFrame
+	ages, err := df.GetColumn("Age")
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// Add a new column
-	err = df.AddColumn("Gender", []string{"Male", "Female", "Male", "Female"})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Remove a column
-	err = df.RemoveColumn("Age")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Reorder columns
-	err = df.ReorderColumns([]string{"Name", "Location", "Gender"})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("DataFrame after column manipulation:")
-	df.Print()
+	fmt.Println("Ages:", ages)
 	fmt.Println()
 
-	// Sort the dataframe by name in ascending order
-	err = df.Sort([]string{"Name"})
+	// Calculate the sum of values in a column
+	sum, err := df.SumColumn("Age")
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Println("DataFrame after sorting:")
-	df.Print()
+	fmt.Println("Sum of ages:", sum)
 	fmt.Println()
 
-	// Filter rows based on a condition
+	// Filter the DataFrame based on a condition
 	filteredDF := df.Filter(func(row []interface{}) bool {
-		location := row[1].(string)
-		return location == "London"
+		age := row[1].(int)
+		return age >= 30
 	})
-
 	fmt.Println("Filtered DataFrame:")
 	filteredDF.Print()
 	fmt.Println()
 
-	// Compute descriptive statistics
+	// Rename a column in the DataFrame
+	err = df.RenameColumn("City", "Location")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Renamed DataFrame:")
+	df.Print()
+	fmt.Println()
+
+	// Add a new column to the DataFrame
+	population := []float64{8.5, 9, 10.2}
+	err = df.AddColumn("Population (in millions)", population)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("DataFrame with new column:")
+	df.Print()
+	fmt.Println()
+
+	// Remove a column from the DataFrame
+	err = df.RemoveColumn("Name")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("DataFrame with column removed:")
+	df.Print()
+	fmt.Println()
+
+	// Reorder columns in the DataFrame
+	err = df.ReorderColumns([]string{"Location", "Population (in millions)", "Age"})
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("DataFrame with reordered columns:")
+	df.Print()
+	fmt.Println()
+
+	// Sort the DataFrame based on one or more columns
+	err = df.Sort([]string{"Age"})
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("DataFrame sorted by Age:")
+	df.Print()
+	fmt.Println()
+
+	// Perform statistical computations on a numeric column
 	min, err := df.Min("Age")
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("Minimum age:", min)
 
 	max, err := df.Max("Age")
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("Maximum age:", max)
 
 	median, err := df.Median("Age")
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("Median age:", median)
 
 	variance, err := df.Variance("Age")
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("Variance of age:", variance)
+	fmt.Println()
 
-	fmt.Printf("Descriptive Statistics:\nMin: %v\nMax: %v\nMedian: %v\nVariance: %v\n\n", min, max, median, variance)
+	// Merge two DataFrames based on common columns
+	otherDF := NewDataFrame([]string{"Name", "Location"})
+	otherDF.AddRow("John", "New York")
+	otherDF.AddRow("Jane", "London")
+	otherDF.AddRow("Mike", "Paris")
 
-	// Merge two dataframes
-	df2 := dataframe.NewDataFrame([]string{"Name", "Location", "Salary"})
-	df2.AddRow("John", "New York", 5000)
-	df2.AddRow("Alice", "London", 6000)
-	df2.AddRow("Bob", "Paris", 5500)
-
-	mergedDF, err := df.Merge(df2)
+	mergedDF, err := df.Merge(otherDF)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -108,46 +132,35 @@ func main() {
 	mergedDF.Print()
 	fmt.Println()
 
-	// Convert column data type
-	err = df.ConvertColumnType("Salary", dataframe.KindFloat64)
+	// Convert the data type of a column
+	err = df.ConvertColumnType("Age", reflect.Float64)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println("DataFrame after column data type conversion:")
+	fmt.Println("DataFrame with converted column type:")
 	df.Print()
 	fmt.Println()
 
-	// Infer column data types
-	df.InferColumnTypes()
+	// Infer the data types of columns
+	dataTypes := df.InferDataType()
+	fmt.Println("Inferred data types:")
+	for col, dataType := range dataTypes {
+		fmt.Printf("%s: %s\n", col, dataType)
+	}
+	fmt.Println()
 
-	fmt.Println("DataFrame after inferring column data types:")
+	// Fill missing values in the DataFrame
+	df.FillMissingValues(0)
+
+	fmt.Println("DataFrame with filled missing values:")
 	df.Print()
 	fmt.Println()
 
-	// Fill missing values
-	df.FillMissingValues("N/A")
-
-	fmt.Println("DataFrame after filling missing values:")
-	df.Print()
-	fmt.Println()
-
-	// Group by location and compute the average salary
+	// Group the DataFrame by a column and perform aggregation
 	groupedDF, err := df.GroupBy("Location", func(data []interface{}) interface{} {
-		salaries := make([]float64, 0)
-		for _, val := range data {
-			if salary, ok := val.(float64); ok {
-				salaries = append(salaries, salary)
-			}
-		}
-		if len(salaries) > 0 {
-			sum := 0.0
-			for _, salary := range salaries {
-				sum += salary
-			}
-			return sum / float64(len(salaries))
-		}
-		return nil
+		count := len(data)
+		return count
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -157,12 +170,13 @@ func main() {
 	groupedDF.Print()
 	fmt.Println()
 
-	// Pivot the dataframe
-	pivotedDF, err := df.Pivot("Name", "Location", "Salary")
+	// Pivot the DataFrame based on specified columns
+	pivotedDF, err := df.Pivot("Age", "Location", "Population (in millions)")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	fmt.Println("Pivoted DataFrame:")
 	pivotedDF.Print()
+	fmt.Println()
 }
