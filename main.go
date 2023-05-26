@@ -2,20 +2,31 @@ package main
 
 import (
 	"fmt"
-	"time"
-
 	"github.com/nitetrik/Godataframe/dataframe"
 )
 
 func main() {
-	// Import Excel file
-	df, err := dataframe.ImportExcel("data.xlsx")
+	// Create a new DataFrame
+	df, err := dataframe.NewDataFrame([]string{"Name", "Age", "City", "Salary"})
 	if err != nil {
-		fmt.Println("Error importing Excel file:", err)
+		fmt.Println("Error creating DataFrame:", err)
 		return
 	}
 
-	// Perform operations on DataFrame
+	// Add columns to the DataFrame
+	names := []interface{}{"John", "Alice", "Bob", "Jane"}
+	df.AddColumn("Name", names)
+
+	ages := []interface{}{25, 30, 35, 28}
+	df.AddColumn("Age", ages)
+
+	cities := []interface{}{"New York", "London", "Tokyo", "Paris"}
+	df.AddColumn("City", cities)
+
+	salaries := []interface{}{50000, 60000, 75000, 55000}
+	df.AddColumn("Salary", salaries)
+
+	// Perform operations on the DataFrame
 
 	// Print header and data of the DataFrame
 	fmt.Println("DataFrame Header:")
@@ -26,7 +37,7 @@ func main() {
 	df.PrintData()
 	fmt.Println()
 
-	// Perform count operation
+	// Count the number of ages
 	count, err := df.Count("Age")
 	if err != nil {
 		fmt.Println("Error counting values:", err)
@@ -35,7 +46,7 @@ func main() {
 	fmt.Println("Count of Ages:", count)
 	fmt.Println()
 
-	// Perform sum operation
+	// Sum the salaries
 	sum, err := df.Sum("Salary")
 	if err != nil {
 		fmt.Println("Error summing values:", err)
@@ -44,7 +55,7 @@ func main() {
 	fmt.Println("Sum of Salaries:", sum)
 	fmt.Println()
 
-	// Perform mean operation
+	// Calculate the mean age
 	mean, err := df.Mean("Age")
 	if err != nil {
 		fmt.Println("Error calculating mean:", err)
@@ -67,56 +78,88 @@ func main() {
 	filteredDF.PrintData()
 	fmt.Println()
 
-	// Modify a column in the DataFrame
-	newAges := []interface{}{30, 35, 40, 33}
-	err = df.ModifyColumn("Age", newAges)
+	// Sort the DataFrame
+	err = df.Sort([]string{"Age", "Salary"}, true)
 	if err != nil {
-		fmt.Println("Error modifying column:", err)
+		fmt.Println("Error sorting DataFrame:", err)
 		return
 	}
 
-	fmt.Println("Modified DataFrame:")
+	fmt.Println("Sorted DataFrame:")
 	df.PrintHeader()
 	df.PrintData()
 	fmt.Println()
 
-	// Change the column order in the DataFrame
-	newColumnOrder := []string{"City", "Name", "Age", "Salary"}
-	err = df.ChangeColumnOrder(newColumnOrder)
+	// Group and aggregate the DataFrame
+	groupedDF, err := df.GroupBy([]string{"City"})
 	if err != nil {
-		fmt.Println("Error changing column order:", err)
+		fmt.Println("Error grouping DataFrame:", err)
 		return
 	}
 
-	fmt.Println("DataFrame with Changed Column Order:")
-	df.PrintHeader()
-	df.PrintData()
+	fmt.Println("Grouped DataFrame:")
+	groupedDF.PrintHeader()
+	groupedDF.PrintData()
 	fmt.Println()
 
-	// Perform time series analysis
-	dateColumn := []interface{}{
-		time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC),
-		time.Date(2022, 2, 1, 0, 0, 0, 0, time.UTC),
-		time.Date(2022, 3, 1, 0, 0, 0, 0, time.UTC),
-		time.Date(2022, 4, 1, 0, 0, 0, 0, time.UTC),
-	}
-	valueColumn := []interface{}{100.0, 150.0, 120.0, 200.0}
-
-	err = df.AddColumn("Date", dateColumn)
+	// Join DataFrames
+	joinDF1, err := dataframe.NewDataFrame([]string{"Name", "Age", "City"})
 	if err != nil {
-		fmt.Println("Error adding column:", err)
+		fmt.Println("Error creating join DataFrame 1:", err)
 		return
 	}
 
-	err = df.AddColumn("Value", valueColumn)
+	joinNames := []interface{}{"John", "Alice"}
+	joinDF1.AddColumn("Name", joinNames)
+
+	joinAges := []interface{}{25, 30}
+	joinDF1.AddColumn("Age", joinAges)
+
+	joinCities := []interface{}{"New York", "London"}
+	joinDF1.AddColumn("City", joinCities)
+
+	joinDF2, err := dataframe.NewDataFrame([]string{"City", "Population"})
 	if err != nil {
-		fmt.Println("Error adding column:", err)
+		fmt.Println("Error creating join DataFrame 2:", err)
 		return
 	}
 
-	err = df.TimeSeriesAnalysis("Date", "Value")
+	joinCities2 := []interface{}{"New York", "London"}
+	joinDF2.AddColumn("City", joinCities2)
+
+	joinPopulations := []interface{}{8500000, 9000000}
+	joinDF2.AddColumn("Population", joinPopulations)
+
+	joinedDF, err := dataframe.Join([]*dataframe.DataFrame{joinDF1, joinDF2}, []string{"City"})
 	if err != nil {
-		fmt.Println("Error performing time series analysis:", err)
+		fmt.Println("Error joining DataFrames:", err)
 		return
 	}
+
+	fmt.Println("Joined DataFrame:")
+	joinedDF.PrintHeader()
+	joinedDF.PrintData()
+	fmt.Println()
+
+	// Serialize DataFrame to JSON
+	jsonData, err := df.SerializeToJSON()
+	if err != nil {
+		fmt.Println("Error serializing DataFrame to JSON:", err)
+		return
+	}
+
+	fmt.Println("Serialized DataFrame (JSON):")
+	fmt.Println(jsonData)
+	fmt.Println()
+
+	// Serialize DataFrame to CSV
+	csvData, err := df.SerializeToCSV()
+	if err != nil {
+		fmt.Println("Error serializing DataFrame to CSV:", err)
+		return
+	}
+
+	fmt.Println("Serialized DataFrame (CSV):")
+	fmt.Println(csvData)
+	fmt.Println()
 }
