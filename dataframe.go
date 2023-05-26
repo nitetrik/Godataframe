@@ -3,9 +3,9 @@ package dataframe
 import (
 	"errors"
 	"fmt"
-	"time"
-
-	"github.com/360EntSecGroup-Skylar/excelize/v2"
+	"sort"
+	"strconv"
+	"strings"
 )
 
 // DataFrame represents a data structure for storing tabular data
@@ -199,130 +199,414 @@ func (df *DataFrame) Mean(columnName string) (float64, error) {
 	return mean, nil
 }
 
-// TimeSeriesAnalysis performs a basic time series analysis on a date-based column
-func (df *DataFrame) TimeSeriesAnalysis(dateColumnName, valueColumnName string) error {
-	dateData, ok := df.columns[dateColumnName]
-	if !ok {
-		return fmt.Errorf("date column '%s' does not exist", dateColumnName)
-	}
-
-	valueData, ok := df.columns[valueColumnName]
-	if !ok {
-		return fmt.Errorf("value column '%s' does not exist", valueColumnName)
-	}
-
-	if len(dateData) != len(valueData) {
-		return errors.New("date and value columns have different lengths")
-	}
-
-	if len(dateData) == 0 {
-		return errors.New("no data in the DataFrame")
-	}
-
-	fmt.Println("Time Series Analysis:")
-	fmt.Printf("Date Range: %v - %v\n", dateData[0], dateData[len(dateData)-1])
-
-	// Perform analysis on value column (e.g., min, max, average)
-	minValue, maxValue, err := df.MinValueMaxValue(valueColumnName)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("Min %v: %v\n", valueColumnName, minValue)
-	fmt.Printf("Max %v: %v\n", valueColumnName, maxValue)
-
-	// Additional analysis can be performed as per requirements
+// Sort sorts the DataFrame based on one or more columns in ascending or descending order
+func (df *DataFrame) Sort(columns []string, ascending bool) error {
+	sort.SliceStable(df.columns[df.header[0]], func(i, j int) bool {
+		for _, col := range columns {
+			if df.columns[col][i] != df.columns[col][j] {
+				switch df.columns[col][i].(type) {
+				case int:
+					if ascending {
+						return df.columns[col][i].(int) < df.columns[col][j].(int)
+					} else {
+						return df.columns[col][i].(int) > df.columns[col][j].(int)
+					}
+				case float64:
+					if ascending {
+						return df.columns[col][i].(float64) < df.columns[col][j].(float64)
+					} else {
+						return df.columns[col][i].(float64) > df.columns[col][j].(float64)
+					}
+				case string:
+					if ascending {
+						return strings.Compare(df.columns[col][i].(string), df.columns[col][j].(string)) < 0
+					} else {
+						return strings.Compare(df.columns[col][i].(string), df.columns[col][j].(string)) > 0
+					}
+				}
+			}
+		}
+		return i < j
+	})
 
 	return nil
 }
 
-// MinValueMaxValue returns the minimum and maximum values in a numeric column
-func (df *DataFrame) MinValueMaxValue(columnName string) (float64, float64, error) {
-	columnData, ok := df.columns[columnName]
-	if !ok {
-		return 0, 0, fmt.Errorf("column '%s' does not exist", columnName)
-	}
+// GroupBy groups the DataFrame by one or more columns
+func (df *DataFrame) GroupBy(columns []string) (*DataFrame, error) {
+	groupedColumns := make(map[string][]interface{})
+	groupedRowCount := make(map[string]int)
 
-	minValue := columnData[0].(float64)
-	maxValue := columnData[0].(float64)
-	for _, value := range columnData {
-		if numericValue, ok := value.(float64); ok {
-			if numericValue < minValue {
-				minValue = numericValue
-			}
-			if numericValue > maxValue {
-				maxValue = numericValue
-			}
-		} else {
-			return 0, 0, fmt.Errorf("column '%s' is not numeric", columnName)
+	for _, col := range columns {
+		if _, ok := df.columns[col]; !ok {
+			return nil, fmt.Errorf("column '%s' does not exist", col)
 		}
-	}
-
-	return minValue, maxValue, nil
-}
-
-// ImportExcel reads an Excel file and returns a DataFrame containing the data from the first sheet
-func ImportExcel(filename string) (*DataFrame, error) {
-	f, err := excelize.OpenFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := f.GetRows(f.GetSheetName(1))
-	if err != nil {
-		return nil, err
-	}
-
-	header := rows[0]
-	columns := make(map[string][]interface{})
-	for _, columnName := range header {
-		columns[columnName] = make([]interface{}, 0)
-	}
-
-	for i := 1; i < len(rows); i++ {
-		for j, value := range rows[i] {
-			columnName := header[j]
-			columns[columnName] = append(columns[columnName], value)
-		}
-	}
-
-	df, err := NewDataFrame(header)
-	if err != nil {
-		return nil, err
-	}
-
-	for columnName, columnData := range columns {
-		err := df.AddColumn(columnName, columnData)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return df, nil
-}
-
-// ExportExcel exports the DataFrame data to an Excel file with the given filename
-func (df *DataFrame) ExportExcel(filename string) error {
-	f := excelize.NewFile()
-	index := f.NewSheet("Sheet1")
-
-	header := df.ColumnNames()
-	for i, columnName := range header {
-		f.SetCellValue("Sheet1", excelize.ToAlphaString(i+1)+"1", columnName)
+		groupedColumns[col] = []interface{}{}
+		groupedRowCount[col] = 0
 	}
 
 	for i := 0; i < df.RowCount(); i++ {
-		for j, columnName := range header {
-			cellValue := df.columns[columnName][i]
-			f.SetCellValue("Sheet1", excelize.ToAlphaString(j+1)+fmt.Sprint(i+2), cellValue)
+		groupKey := ""
+		for _, col := range columns {
+			groupKey += fmt.Sprintf("%v-%v", col, df.columns[col][i])
+		}
+
+		if _, ok := groupedColumns[groupKey]; !ok {
+			for _, col := range columns {
+				groupedColumns[col] = append(groupedColumns[col], df.columns[col][i])
+			}
+		}
+		groupedRowCount[groupKey]++
+	}
+
+	for col, rowCount := range groupedRowCount {
+		for i := 0; i < df.RowCount(); i++ {
+			if groupedRowCount[fmt.Sprintf("%v-%v", col, df.columns[col][i])] > 0 {
+				groupedColumns[col] = append(groupedColumns[col], rowCount)
+				groupedRowCount[fmt.Sprintf("%v-%v", col, df.columns[col][i])] = 0
+			} else {
+				groupedColumns[col] = append(groupedColumns[col], nil)
+			}
 		}
 	}
 
-	f.SetActiveSheet(index)
-	err := f.SaveAs(filename)
-	if err != nil {
-		return err
+	return &DataFrame{
+		header:  append(columns, "Count"),
+		columns: groupedColumns,
+	}, nil
+}
+
+// Join joins multiple DataFrames based on common columns
+func Join(dataFrames []*DataFrame, joinColumns []string) (*DataFrame, error) {
+	if len(dataFrames) == 0 {
+		return nil, errors.New("no DataFrames provided for join")
+	}
+
+	joinedColumns := make(map[string][]interface{})
+	for _, df := range dataFrames {
+		for _, col := range df.header {
+			if _, ok := joinedColumns[col]; ok {
+				return nil, fmt.Errorf("column '%s' already exists in the join result", col)
+			}
+			joinedColumns[col] = df.columns[col]
+		}
+	}
+
+	for _, df := range dataFrames[1:] {
+		for i := 0; i < df.RowCount(); i++ {
+			rowMatch := make([]bool, len(dataFrames[0].header))
+			for j, col := range joinColumns {
+				if _, ok := df.columns[col]; !ok {
+					return nil, fmt.Errorf("column '%s' does not exist in DataFrame for join", col)
+				}
+
+				if _, ok := joinedColumns[col]; !ok {
+					return nil, fmt.Errorf("column '%s' does not exist in the join result", col)
+				}
+
+				if df.columns[col][i] != nil {
+					if idx := findIndex(joinedColumns[col], df.columns[col][i]); idx != -1 {
+						rowMatch[idx] = true
+					}
+				}
+			}
+
+			if allTrue(rowMatch) {
+				for _, col := range df.header {
+					if _, ok := joinedColumns[col]; !ok {
+						return nil, fmt.Errorf("column '%s' does not exist in the join result", col)
+					}
+
+					joinedColumns[col] = append(joinedColumns[col], df.columns[col][i])
+				}
+			}
+		}
+	}
+
+	return &DataFrame{
+		header:  dataFrames[0].header,
+		columns: joinedColumns,
+	}, nil
+}
+
+// CleanData cleans the DataFrame by handling missing values, duplicates, and data type conversion
+func (df *DataFrame) CleanData() error {
+	// Handle missing values
+	for columnName, columnData := range df.columns {
+		for i := 0; i < len(columnData); i++ {
+			if columnData[i] == nil {
+				switch df.columns[columnName][0].(type) {
+				case int:
+					df.columns[columnName][i] = 0
+				case float64:
+					df.columns[columnName][i] = 0.0
+				case string:
+					df.columns[columnName][i] = ""
+				default:
+					return fmt.Errorf("unknown data type in column '%s'", columnName)
+				}
+			}
+		}
+	}
+
+	// Handle duplicates
+	duplicateIndexes := make(map[int]bool)
+	for i := 0; i < df.RowCount(); i++ {
+		if duplicateIndexes[i] {
+			continue
+		}
+		for j := i + 1; j < df.RowCount(); j++ {
+			if duplicateIndexes[j] {
+				continue
+			}
+			isDuplicate := true
+			for _, columnName := range df.header {
+				if df.columns[columnName][i] != df.columns[columnName][j] {
+					isDuplicate = false
+					break
+				}
+			}
+			if isDuplicate {
+				duplicateIndexes[j] = true
+			}
+		}
+	}
+
+	for columnName, columnData := range df.columns {
+		cleanedColumn := make([]interface{}, 0)
+		for i := 0; i < len(columnData); i++ {
+			if !duplicateIndexes[i] {
+				cleanedColumn = append(cleanedColumn, columnData[i])
+			}
+		}
+		df.columns[columnName] = cleanedColumn
 	}
 
 	return nil
+}
+
+// Variance calculates the variance of values in a numeric column
+func (df *DataFrame) Variance(columnName string) (float64, error) {
+	columnData, ok := df.columns[columnName]
+	if !ok {
+		return 0, fmt.Errorf("column '%s' does not exist", columnName)
+	}
+
+	count, err := df.Count(columnName)
+	if err != nil {
+		return 0, err
+	}
+
+	mean, err := df.Mean(columnName)
+	if err != nil {
+		return 0, err
+	}
+
+	if count <= 1 {
+		return 0, errors.New("insufficient data points for variance calculation")
+	}
+
+	variance := 0.0
+	for _, value := range columnData {
+		if numericValue, ok := value.(float64); ok {
+			variance += (numericValue - mean) * (numericValue - mean)
+		} else {
+			return 0, fmt.Errorf("column '%s' is not numeric", columnName)
+		}
+	}
+	variance /= float64(count - 1)
+
+	return variance, nil
+}
+
+// StandardDeviation calculates the standard deviation of values in a numeric column
+func (df *DataFrame) StandardDeviation(columnName string) (float64, error) {
+	variance, err := df.Variance(columnName)
+	if err != nil {
+		return 0, err
+	}
+
+	standardDeviation := 0.0
+	if variance > 0 {
+		standardDeviation = �math.Sqrt(variance)
+	}
+
+	return standardDeviation, nil
+}
+
+// Correlation calculates the correlation coefficient between two numeric columns
+func (df *DataFrame) Correlation(column1, column2 string) (float64, error) {
+	column1Data, ok1 := df.columns[column1]
+	column2Data, ok2 := df.columns[column2]
+
+	if !ok1 {
+		return 0, fmt.Errorf("column '%s' does not exist", column1)
+	}
+	if !ok2 {
+		return 0, fmt.Errorf("column '%s' does not exist", column2)
+	}
+
+	count, err := df.Count(column1)
+	if err != nil {
+		return 0, err
+	}
+
+	if count <= 1 {
+		return 0, errors.New("insufficient data points for correlation calculation")
+	}
+
+	var (
+		sumXY    float64
+		sumX     float64
+		sumY     float64
+		sumXSquare float64
+		sumYSquare float64
+	)
+
+	for i := 0; i < df.RowCount(); i++ {
+		if value1, ok := column1Data[i].(float64); ok {
+			if value2, ok := column2Data[i].(float64); ok {
+				sumXY += value1 * value2
+				sumX += value1
+				sumY += value2
+				sumXSquare += value1 * value1
+				sumYSquare += value2 * value2
+			} else {
+				return 0, fmt.Errorf("column '%s' is not numeric", column2)
+			}
+		} else {
+			return 0, fmt.Errorf("column '%s' is not numeric", column1)
+		}
+	}
+
+	numerator := count*sumXY - sumX*sumY
+	denominator := math.Sqrt((count*sumXSquare - sumX*sumX) * (count*sumYSquare - sumY*sumY))
+
+	correlation := 0.0
+	if denominator != 0 {
+		correlation = numerator / denominator
+	}
+
+	return correlation, nil
+}
+
+// Covariance calculates the covariance between two numeric columns
+func (df *DataFrame) Covariance(column1, column2 string) (float64, error) {
+	column1Data, ok1 := df.columns[column1]
+	column2Data, ok2 := df.columns[column2]
+
+	if !ok1 {
+		return 0, fmt.Errorf("column '%s' does not exist", column1)
+	}
+	if !ok2 {
+		return 0, fmt.Errorf("column '%s' does not exist", column2)
+	}
+
+	count, err := df.Count(column1)
+	if err != nil {
+		return 0, err
+	}
+
+	if count <= 1 {
+		return 0, errors.New("insufficient data points for covariance calculation")
+	}
+
+	var (
+		sumXY float64
+		sumX  float64
+		sumY  float64
+	)
+
+	for i := 0; i < df.RowCount(); i++ {
+		if value1, ok := column1Data[i].(float64); ok {
+			if value2, ok := column2Data[i].(float64); ok {
+				sumXY += value1 * value2
+				sumX += value1
+				sumY += value2
+			} else {
+				return 0, fmt.Errorf("column '%s' is not numeric", column2)
+			}
+		} else {
+			return 0, fmt.Errorf("column '%s' is not numeric", column1)
+		}
+	}
+
+	covariance := 0.0
+	if count > 1 {
+		meanX := sumX / float64(count)
+		meanY := sumY / float64(count)
+		covariance = (sumXY - float64(count)*meanX*meanY) / float64(count-1)
+	}
+
+	return covariance, nil
+}
+
+// SerializeToJSON serializes the DataFrame to a JSON string
+func (df *DataFrame) SerializeToJSON() (string, error) {
+	jsonData := "[\n"
+
+	for i := 0; i < df.RowCount(); i++ {
+		jsonData += "\t{"
+		for j, columnName := range df.header {
+			jsonData += fmt.Sprintf("\"%s\":", columnName)
+			if value, ok := df.columns[columnName][i].(string); ok {
+				jsonData += "\"" + value + "\""
+			} else {
+				jsonData += fmt.Sprintf("%v", df.columns[columnName][i])
+			}
+			if j < len(df.header)-1 {
+				jsonData += ","
+			}
+		}
+		jsonData += "}"
+		if i < df.RowCount()-1 {
+			jsonData += ","
+		}
+		jsonData += "\n"
+	}
+
+	jsonData += "]\n"
+
+	return jsonData, nil
+}
+
+// SerializeToCSV serializes the DataFrame to a CSV string
+func (df *DataFrame) SerializeToCSV() (string, error) {
+	csvData := strings.Join(df.header, ",") + "\n"
+
+	for i := 0; i < df.RowCount(); i++ {
+		for j, columnName := range df.header {
+			if value, ok := df.columns[columnName][i].(string); ok {
+				csvData += "\"" + value + "\""
+			} else {
+				csvData += fmt.Sprintf("%v", df.columns[columnName][i])
+			}
+			if j < len(df.header)-1 {
+				csvData += ","
+			}
+		}
+		csvData += "\n"
+	}
+
+	return csvData, nil
+}
+
+// findIndex returns the index of an element in a slice, or -1 if not found
+func findIndex(slice []interface{}, element interface{}) int {
+	for i, value := range slice {
+		if value == element {
+			return i
+		}
+	}
+	return -1
+}
+
+// allTrue checks if all elements in a bool slice are true
+func allTrue(slice []bool) bool {
+	for _, value := range slice {
+		if !value {
+			return false
+		}
+	}
+	return true
 }
