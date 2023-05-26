@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/360EntSecGroup-Skylar/excelize/v2"
 )
 
 // DataFrame represents a data structure for storing tabular data
@@ -257,4 +259,70 @@ func (df *DataFrame) MinValueMaxValue(columnName string) (float64, float64, erro
 	}
 
 	return minValue, maxValue, nil
+}
+
+// ImportExcel reads an Excel file and returns a DataFrame containing the data from the first sheet
+func ImportExcel(filename string) (*DataFrame, error) {
+	f, err := excelize.OpenFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := f.GetRows(f.GetSheetName(1))
+	if err != nil {
+		return nil, err
+	}
+
+	header := rows[0]
+	columns := make(map[string][]interface{})
+	for _, columnName := range header {
+		columns[columnName] = make([]interface{}, 0)
+	}
+
+	for i := 1; i < len(rows); i++ {
+		for j, value := range rows[i] {
+			columnName := header[j]
+			columns[columnName] = append(columns[columnName], value)
+		}
+	}
+
+	df, err := NewDataFrame(header)
+	if err != nil {
+		return nil, err
+	}
+
+	for columnName, columnData := range columns {
+		err := df.AddColumn(columnName, columnData)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return df, nil
+}
+
+// ExportExcel exports the DataFrame data to an Excel file with the given filename
+func (df *DataFrame) ExportExcel(filename string) error {
+	f := excelize.NewFile()
+	index := f.NewSheet("Sheet1")
+
+	header := df.ColumnNames()
+	for i, columnName := range header {
+		f.SetCellValue("Sheet1", excelize.ToAlphaString(i+1)+"1", columnName)
+	}
+
+	for i := 0; i < df.RowCount(); i++ {
+		for j, columnName := range header {
+			cellValue := df.columns[columnName][i]
+			f.SetCellValue("Sheet1", excelize.ToAlphaString(j+1)+fmt.Sprint(i+2), cellValue)
+		}
+	}
+
+	f.SetActiveSheet(index)
+	err := f.SaveAs(filename)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -4,49 +4,20 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nitetrik/dataframe/dataframe"
+	"github.com/nitetrik/Godataframe/dataframe"
 )
 
 func main() {
-	// Create a new DataFrame
-	columnNames := []string{"Name", "Age", "City", "Salary"}
-	df, err := dataframe.NewDataFrame(columnNames)
+	// Import Excel file
+	df, err := dataframe.ImportExcel("data.xlsx")
 	if err != nil {
-		fmt.Println("Error creating DataFrame:", err)
+		fmt.Println("Error importing Excel file:", err)
 		return
 	}
 
-	// Add data to the DataFrame
-	names := []interface{}{"John", "Alice", "Bob", "Jane"}
-	ages := []interface{}{25, 30, 35, 28}
-	cities := []interface{}{"New York", "London", "Tokyo", "Paris"}
-	salaries := []interface{}{50000.0, 60000.0, 75000.0, 55000.0}
+	// Perform operations on DataFrame
 
-	err = df.AddColumn("Name", names)
-	if err != nil {
-		fmt.Println("Error adding column:", err)
-		return
-	}
-
-	err = df.AddColumn("Age", ages)
-	if err != nil {
-		fmt.Println("Error adding column:", err)
-		return
-	}
-
-	err = df.AddColumn("City", cities)
-	if err != nil {
-		fmt.Println("Error adding column:", err)
-		return
-	}
-
-	err = df.AddColumn("Salary", salaries)
-	if err != nil {
-		fmt.Println("Error adding column:", err)
-		return
-	}
-
-	// Print the header and data of the DataFrame
+	// Print header and data of the DataFrame
 	fmt.Println("DataFrame Header:")
 	df.PrintHeader()
 	fmt.Println()
@@ -55,7 +26,7 @@ func main() {
 	df.PrintData()
 	fmt.Println()
 
-	// Perform basic operations on the DataFrame
+	// Perform count operation
 	count, err := df.Count("Age")
 	if err != nil {
 		fmt.Println("Error counting values:", err)
@@ -64,6 +35,7 @@ func main() {
 	fmt.Println("Count of Ages:", count)
 	fmt.Println()
 
+	// Perform sum operation
 	sum, err := df.Sum("Salary")
 	if err != nil {
 		fmt.Println("Error summing values:", err)
@@ -72,6 +44,7 @@ func main() {
 	fmt.Println("Sum of Salaries:", sum)
 	fmt.Println()
 
+	// Perform mean operation
 	mean, err := df.Mean("Age")
 	if err != nil {
 		fmt.Println("Error calculating mean:", err)
