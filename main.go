@@ -2,181 +2,148 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"reflect"
+	"time"
+
+	"github.com/nitetrik/dataframe/dataframe"
 )
 
 func main() {
 	// Create a new DataFrame
-	df := NewDataFrame([]string{"Name", "Age", "City"})
-
-	// Add rows to the DataFrame
-	df.AddRow("John", 30, "New York")
-	df.AddRow("Jane", 25, "London")
-	df.AddRow("Mike", 35, "Paris")
-
-	// Print the original DataFrame
-	fmt.Println("Original DataFrame:")
-	df.Print()
-	fmt.Println()
-
-	// Get a column from the DataFrame
-	ages, err := df.GetColumn("Age")
+	columnNames := []string{"Name", "Age", "City", "Salary"}
+	df, err := dataframe.NewDataFrame(columnNames)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Error creating DataFrame:", err)
+		return
 	}
-	fmt.Println("Ages:", ages)
-	fmt.Println()
 
-	// Calculate the sum of values in a column
-	sum, err := df.SumColumn("Age")
+	// Add data to the DataFrame
+	names := []interface{}{"John", "Alice", "Bob", "Jane"}
+	ages := []interface{}{25, 30, 35, 28}
+	cities := []interface{}{"New York", "London", "Tokyo", "Paris"}
+	salaries := []interface{}{50000.0, 60000.0, 75000.0, 55000.0}
+
+	err = df.AddColumn("Name", names)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Error adding column:", err)
+		return
 	}
-	fmt.Println("Sum of ages:", sum)
+
+	err = df.AddColumn("Age", ages)
+	if err != nil {
+		fmt.Println("Error adding column:", err)
+		return
+	}
+
+	err = df.AddColumn("City", cities)
+	if err != nil {
+		fmt.Println("Error adding column:", err)
+		return
+	}
+
+	err = df.AddColumn("Salary", salaries)
+	if err != nil {
+		fmt.Println("Error adding column:", err)
+		return
+	}
+
+	// Print the header and data of the DataFrame
+	fmt.Println("DataFrame Header:")
+	df.PrintHeader()
 	fmt.Println()
 
-	// Filter the DataFrame based on a condition
-	filteredDF := df.Filter(func(row []interface{}) bool {
-		age := row[1].(int)
-		return age >= 30
+	fmt.Println("DataFrame Data:")
+	df.PrintData()
+	fmt.Println()
+
+	// Perform basic operations on the DataFrame
+	count, err := df.Count("Age")
+	if err != nil {
+		fmt.Println("Error counting values:", err)
+		return
+	}
+	fmt.Println("Count of Ages:", count)
+	fmt.Println()
+
+	sum, err := df.Sum("Salary")
+	if err != nil {
+		fmt.Println("Error summing values:", err)
+		return
+	}
+	fmt.Println("Sum of Salaries:", sum)
+	fmt.Println()
+
+	mean, err := df.Mean("Age")
+	if err != nil {
+		fmt.Println("Error calculating mean:", err)
+		return
+	}
+	fmt.Println("Mean Age:", mean)
+	fmt.Println()
+
+	// Filter the DataFrame
+	filteredDF, err := df.Filter(func(row int) bool {
+		return df.columns["Age"][row].(int) > 28
 	})
+	if err != nil {
+		fmt.Println("Error filtering DataFrame:", err)
+		return
+	}
+
 	fmt.Println("Filtered DataFrame:")
-	filteredDF.Print()
+	filteredDF.PrintHeader()
+	filteredDF.PrintData()
 	fmt.Println()
 
-	// Rename a column in the DataFrame
-	err = df.RenameColumn("City", "Location")
+	// Modify a column in the DataFrame
+	newAges := []interface{}{30, 35, 40, 33}
+	err = df.ModifyColumn("Age", newAges)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Error modifying column:", err)
+		return
 	}
-	fmt.Println("Renamed DataFrame:")
-	df.Print()
+
+	fmt.Println("Modified DataFrame:")
+	df.PrintHeader()
+	df.PrintData()
 	fmt.Println()
 
-	// Add a new column to the DataFrame
-	population := []float64{8.5, 9, 10.2}
-	err = df.AddColumn("Population (in millions)", population)
+	// Change the column order in the DataFrame
+	newColumnOrder := []string{"City", "Name", "Age", "Salary"}
+	err = df.ChangeColumnOrder(newColumnOrder)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Error changing column order:", err)
+		return
 	}
-	fmt.Println("DataFrame with new column:")
-	df.Print()
+
+	fmt.Println("DataFrame with Changed Column Order:")
+	df.PrintHeader()
+	df.PrintData()
 	fmt.Println()
 
-	// Remove a column from the DataFrame
-	err = df.RemoveColumn("Name")
+	// Perform time series analysis
+	dateColumn := []interface{}{
+		time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2022, 2, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2022, 3, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2022, 4, 1, 0, 0, 0, 0, time.UTC),
+	}
+	valueColumn := []interface{}{100.0, 150.0, 120.0, 200.0}
+
+	err = df.AddColumn("Date", dateColumn)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Error adding column:", err)
+		return
 	}
-	fmt.Println("DataFrame with column removed:")
-	df.Print()
-	fmt.Println()
 
-	// Reorder columns in the DataFrame
-	err = df.ReorderColumns([]string{"Location", "Population (in millions)", "Age"})
+	err = df.AddColumn("Value", valueColumn)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Error adding column:", err)
+		return
 	}
-	fmt.Println("DataFrame with reordered columns:")
-	df.Print()
-	fmt.Println()
 
-	// Sort the DataFrame based on one or more columns
-	err = df.Sort([]string{"Age"})
+	err = df.TimeSeriesAnalysis("Date", "Value")
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Error performing time series analysis:", err)
+		return
 	}
-	fmt.Println("DataFrame sorted by Age:")
-	df.Print()
-	fmt.Println()
-
-	// Perform statistical computations on a numeric column
-	min, err := df.Min("Age")
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Minimum age:", min)
-
-	max, err := df.Max("Age")
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Maximum age:", max)
-
-	median, err := df.Median("Age")
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Median age:", median)
-
-	variance, err := df.Variance("Age")
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Variance of age:", variance)
-	fmt.Println()
-
-	// Merge two DataFrames based on common columns
-	otherDF := NewDataFrame([]string{"Name", "Location"})
-	otherDF.AddRow("John", "New York")
-	otherDF.AddRow("Jane", "London")
-	otherDF.AddRow("Mike", "Paris")
-
-	mergedDF, err := df.Merge(otherDF)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Merged DataFrame:")
-	mergedDF.Print()
-	fmt.Println()
-
-	// Convert the data type of a column
-	err = df.ConvertColumnType("Age", reflect.Float64)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("DataFrame with converted column type:")
-	df.Print()
-	fmt.Println()
-
-	// Infer the data types of columns
-	dataTypes := df.InferDataType()
-	fmt.Println("Inferred data types:")
-	for col, dataType := range dataTypes {
-		fmt.Printf("%s: %s\n", col, dataType)
-	}
-	fmt.Println()
-
-	// Fill missing values in the DataFrame
-	df.FillMissingValues(0)
-
-	fmt.Println("DataFrame with filled missing values:")
-	df.Print()
-	fmt.Println()
-
-	// Group the DataFrame by a column and perform aggregation
-	groupedDF, err := df.GroupBy("Location", func(data []interface{}) interface{} {
-		count := len(data)
-		return count
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Grouped DataFrame:")
-	groupedDF.Print()
-	fmt.Println()
-
-	// Pivot the DataFrame based on specified columns
-	pivotedDF, err := df.Pivot("Age", "Location", "Population (in millions)")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Pivoted DataFrame:")
-	pivotedDF.Print()
-	fmt.Println()
 }
