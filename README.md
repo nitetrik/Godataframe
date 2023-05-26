@@ -30,7 +30,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/your-username/your-module/dataframe"
+	"github.com/nitetrik/Godataframe/dataframe"
 )
 
 func main() {
